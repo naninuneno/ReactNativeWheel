@@ -5,14 +5,14 @@
 
 import React, {useEffect, useRef, useState} from 'react';
 import {
-  Button,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-  ToastAndroid,
-  Platform,
-  Alert,
+    Button,
+    ScrollView,
+    Text,
+    TextInput,
+    View,
+    ToastAndroid,
+    Platform,
+    Alert, ActivityIndicator,
 } from 'react-native';
 import WebView from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -52,7 +52,6 @@ const App = () => {
 
   const [wheelAlreadySpun, setWheelAlreadySpun] = useState(false);
   const [choice, setChoice] = useState('');
-  const [storedChoices, setStoredChoices] = useState([]);
 
   useEffect(() => {
     // DEV - to clear data down to test fresh instance
@@ -74,18 +73,9 @@ const App = () => {
       await AsyncStorage.setItem('savedChoices', JSON.stringify(savedChoices));
     };
 
-    const getData = async () => {
-      const savedValues = await AsyncStorage.getItem('savedChoices')
-        .then(req => JSON.parse(req))
-        .catch(error => console.error('Error getting saved choices', error));
-      if (savedValues !== null) {
-        setStoredChoices(savedValues);
-      }
-    };
-
     if (choice) {
       // clearData();
-      setData().then(() => getData());
+      setData();
     }
   }, [choice]);
 
@@ -95,9 +85,7 @@ const App = () => {
         <NavigationContainer>
           <Stack.Navigator>
             <Stack.Screen name="Wheel Choices" options={{title: 'History'}}>
-              {props => (
-                <WheelChoicesScreen {...props} storedChoices={storedChoices} />
-              )}
+              {props => <WheelChoicesScreen {...props} />}
             </Stack.Screen>
             <Stack.Screen
               name="Choice Details"
@@ -146,32 +134,54 @@ const App = () => {
   );
 };
 
-const WheelChoicesScreen = ({navigation, storedChoices}) => {
+const WheelChoicesScreen = ({navigation}) => {
   const isFocused = useIsFocused();
+  const [storedChoices, setStoredChoices] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    console.log('isFocused state changed!:', isFocused);
+    const getData = async () => {
+      const savedValues = await AsyncStorage.getItem('savedChoices')
+        .then(req => JSON.parse(req))
+        .catch(error => console.error('Error getting saved choices', error));
+      if (savedValues !== null) {
+        setStoredChoices(savedValues);
+      }
+    };
+
+    if (isFocused) {
+      console.log('Fetching data...');
+      getData().then(() => setLoading(false));
+    } else {
+      setLoading(true);
+    }
   }, [isFocused]);
 
   return (
     <ScrollView>
-      {storedChoices.map((storedChoice, index) => {
-        return (
-          <View key={index}>
-            <Section
-              title={storedChoice.name}
-              subTitle={storedChoice.timestamp}>
-              <SectionText>Info: {storedChoice.additionalInfo}</SectionText>
-              <Button
-                title="Details"
-                onPress={() =>
-                  navigation.navigate('Choice Details', {choice: storedChoice})
-                }
-              />
-            </Section>
-          </View>
-        );
-      })}
+      {loading ? (
+        <ActivityIndicator style={{marginTop: 50}} />
+      ) : (
+        storedChoices.map((storedChoice, index) => {
+          return (
+            <View key={index}>
+              <Section
+                title={storedChoice.name}
+                subTitle={storedChoice.timestamp}>
+                <SectionText>Info: {storedChoice.additionalInfo}</SectionText>
+                <Button
+                  title="Details"
+                  onPress={() =>
+                    navigation.navigate('Choice Details', {
+                      choice: storedChoice,
+                    })
+                  }
+                />
+              </Section>
+            </View>
+          );
+        })
+      )}
     </ScrollView>
   );
 };
