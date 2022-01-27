@@ -5,14 +5,15 @@
 
 import React, {useEffect, useRef, useState} from 'react';
 import {
-    Button,
-    ScrollView,
-    Text,
-    TextInput,
-    View,
-    ToastAndroid,
-    Platform,
-    Alert, ActivityIndicator,
+  ActivityIndicator,
+  Alert,
+  Button,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  ToastAndroid,
+  View,
 } from 'react-native';
 import WebView from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -23,7 +24,67 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
 const Stack = createNativeStackNavigator();
 
+const setData = async choice => {
+  let savedChoices = await AsyncStorage.getItem('savedChoices')
+    .then(req => JSON.parse(req))
+    .catch(error => console.error('Error setting saved choices', error));
+  if (savedChoices === null) {
+    savedChoices = [];
+  }
+  const currentTime = new Date().toLocaleString();
+  const id = savedChoices.length;
+  const newChoice = new Choice(id, choice, currentTime, '');
+  savedChoices.push(newChoice);
+  console.log('saving?');
+  await AsyncStorage.setItem('savedChoices', JSON.stringify(savedChoices));
+};
+
+function notify(msg) {
+  if (Platform.OS === 'android') {
+    ToastAndroid.show(msg, ToastAndroid.SHORT);
+  } else {
+    // TODO test this, where does it show? should show on top
+    Alert.alert(msg);
+  }
+}
+
 const App = () => {
+  return (
+    <View style={{flex: 1}}>
+      <NavigationContainer>
+        <Stack.Navigator>
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Wheel Spin" component={WheelSpinScreen} />
+          <Stack.Screen name="Wheel Choices" options={{title: 'History'}}>
+            {props => <WheelChoicesScreen {...props} />}
+          </Stack.Screen>
+          <Stack.Screen name="Choice Details" component={ChoiceDetailsScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </View>
+  );
+};
+
+const HomeScreen = ({navigation}) => {
+  return (
+    <View>
+      <Section>
+        <Button
+          title="Spin Wheel"
+          onPress={() => navigation.navigate('Wheel Spin')}
+        />
+      </Section>
+      <Section>
+        <Button
+          title="Saved Choices"
+          onPress={() => navigation.navigate('Wheel Choices')}
+        />
+      </Section>
+    </View>
+  );
+};
+
+const WheelSpinScreen = ({navigation}) => {
   const runFirst = `
       function getElementByXpath(path) {
         return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
@@ -50,7 +111,6 @@ const App = () => {
     console.log('New nav: ', url);
   };
 
-  const [wheelAlreadySpun, setWheelAlreadySpun] = useState(false);
   const [choice, setChoice] = useState('');
 
   useEffect(() => {
@@ -59,78 +119,53 @@ const App = () => {
       await AsyncStorage.removeItem('savedChoices');
     };
 
-    const setData = async () => {
-      let savedChoices = await AsyncStorage.getItem('savedChoices')
-        .then(req => JSON.parse(req))
-        .catch(error => console.error('Error setting saved choices', error));
-      if (savedChoices === null) {
-        savedChoices = [];
-      }
-      const currentTime = new Date().toLocaleString();
-      const id = savedChoices.length;
-      const newChoice = new Choice(id, choice, currentTime, '');
-      savedChoices.push(newChoice);
-      await AsyncStorage.setItem('savedChoices', JSON.stringify(savedChoices));
-    };
-
     if (choice) {
       // clearData();
-      setData();
+      setData(choice).then(() => {
+        // popToTop to navigate to home screen first then choices
+        // so 'Back' navigation from choices will go back to home instead of wheel spin
+        navigation.popToTop();
+        navigation.navigate('Wheel Choices');
+        notify("Choice '" + choice + "' saved");
+      });
     }
-  }, [choice]);
+  }, [choice, navigation]);
 
   return (
-    <View style={{flex: 1}}>
-      {wheelAlreadySpun ? (
-        <NavigationContainer>
-          <Stack.Navigator>
-            <Stack.Screen name="Wheel Choices" options={{title: 'History'}}>
-              {props => <WheelChoicesScreen {...props} />}
-            </Stack.Screen>
-            <Stack.Screen
-              name="Choice Details"
-              component={ChoiceDetailsScreen}
-            />
-          </Stack.Navigator>
-        </NavigationContainer>
-      ) : (
-        <WebView
-          source={{
-            uri:
-              'https://tools-unite.com/tools/random-picker-wheel?inputs=Read:1,Watch:1,' +
-              'Read:1,Watch:1,Read:1,Watch:1,Read:1,Watch:1,SmallWheel:1',
-          }}
-          ref={webViewRef}
-          onMessage={event => {
-            let location;
-            const message = event.nativeEvent.data;
-            if (message === 'SmallWheel') {
-              location =
-                'https://tools-unite.com/tools/random-picker-wheel?inputs=OpenSource:1,Productive:1,' +
-                'Free:1';
-            } else if (message === 'Read' || message === 'Watch') {
-              location =
-                'https://tools-unite.com/tools/random-picker-wheel?inputs=Language:1,Misc:1,' +
-                'Programming:1,Piano:1,Politics:1';
-            } else {
-              setChoice(message);
-              setWheelAlreadySpun(true);
-            }
+    <WebView
+      source={{
+        uri:
+          'https://tools-unite.com/tools/random-picker-wheel?inputs=Read:1,Watch:1,' +
+          'Read:1,Watch:1,Read:1,Watch:1,Read:1,Watch:1,SmallWheel:1',
+      }}
+      ref={webViewRef}
+      onMessage={event => {
+        let location;
+        const message = event.nativeEvent.data;
+        if (message === 'SmallWheel') {
+          location =
+            'https://tools-unite.com/tools/random-picker-wheel?inputs=OpenSource:1,Productive:1,' +
+            'Free:1';
+        } else if (message === 'Read' || message === 'Watch') {
+          location =
+            'https://tools-unite.com/tools/random-picker-wheel?inputs=Language:1,Misc:1,' +
+            'Programming:1,Piano:1,Politics:1';
+        } else {
+          setChoice(message);
+        }
 
-            if (location) {
-              webViewRef.current.injectJavaScript(
-                'this.document.location = "' + location + '";',
-              );
-            }
-          }}
-          injectedJavaScript={runFirst}
-          startInLoadingState={true}
-          scalesPageToFit={true}
-          style={{marginTop: 20}}
-          onNavigationStateChange={handleWebViewNavigationStateChange}
-        />
-      )}
-    </View>
+        if (location) {
+          webViewRef.current.injectJavaScript(
+            'this.document.location = "' + location + '";',
+          );
+        }
+      }}
+      injectedJavaScript={runFirst}
+      startInLoadingState={true}
+      scalesPageToFit={true}
+      style={{marginTop: 20}}
+      onNavigationStateChange={handleWebViewNavigationStateChange}
+    />
   );
 };
 
@@ -220,17 +255,9 @@ const ChoiceDetailsScreen = ({route}) => {
       await AsyncStorage.setItem('savedChoices', JSON.stringify(savedChoices));
     };
 
-    function notifyUpdate() {
-      const msg = 'Choice updated';
-      if (Platform.OS === 'android') {
-        ToastAndroid.show(msg, ToastAndroid.SHORT, ToastAndroid.CENTER);
-      } else {
-        // TODO test this, where does it show? should show on top
-        Alert.alert(msg);
-      }
-    }
-
-    getSavedChoice().then(() => updateChoice().then(() => notifyUpdate()));
+    getSavedChoice().then(() =>
+      updateChoice().then(() => notify('Choice updated')),
+    );
   }, [additionalInfoForUpdate, choice]);
 
   return (

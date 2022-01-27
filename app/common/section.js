@@ -44,7 +44,8 @@ export const SectionText = ({children}): Node => {
 
 const styles = StyleSheet.create({
   sectionContainer: {
-    marginTop: 32,
+    marginTop: 18,
+    marginBottom: 18,
     paddingHorizontal: 24,
   },
   sectionTitle: {
