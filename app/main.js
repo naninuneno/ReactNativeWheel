@@ -21,6 +21,7 @@ import {Section, SectionText} from './common/section';
 import Choice from './choice';
 import {NavigationContainer, useIsFocused} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import {clear} from 'react-native/Libraries/LogBox/Data/LogBoxData';
 
 const Stack = createNativeStackNavigator();
 
@@ -114,13 +115,7 @@ const WheelSpinScreen = ({navigation}) => {
   const [choice, setChoice] = useState('');
 
   useEffect(() => {
-    // DEV - to clear data down to test fresh instance
-    const clearData = async () => {
-      await AsyncStorage.removeItem('savedChoices');
-    };
-
     if (choice) {
-      // clearData();
       setData(choice).then(() => {
         // popToTop to navigate to home screen first then choices
         // so 'Back' navigation from choices will go back to home instead of wheel spin
@@ -173,6 +168,7 @@ const WheelChoicesScreen = ({navigation}) => {
   const isFocused = useIsFocused();
   const [storedChoices, setStoredChoices] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [clearData, setClearData] = useState(false);
 
   useEffect(() => {
     const getData = async () => {
@@ -181,7 +177,13 @@ const WheelChoicesScreen = ({navigation}) => {
         .catch(error => console.error('Error getting saved choices', error));
       if (savedValues !== null) {
         setStoredChoices(savedValues);
+      } else {
+        setStoredChoices([]);
       }
+    };
+
+    const deleteChoices = async () => {
+      await AsyncStorage.removeItem('savedChoices');
     };
 
     if (isFocused) {
@@ -190,35 +192,53 @@ const WheelChoicesScreen = ({navigation}) => {
     } else {
       setLoading(true);
     }
-  }, [isFocused]);
+
+    if (clearData) {
+      deleteChoices().then(() => {
+        setLoading(true);
+        getData().then(() => setLoading(false));
+      });
+    }
+  }, [isFocused, clearData]);
 
   return (
     <ScrollView>
       {loading ? (
         <ActivityIndicator style={{marginTop: 50}} />
       ) : (
-        storedChoices.map((storedChoice, index) => {
-          return (
-            <View key={index}>
-              <Section
-                title={storedChoice.name}
-                subTitle={storedChoice.timestamp}>
-                <SectionText>Info: {storedChoice.additionalInfo}</SectionText>
-                <Button
-                  title="Details"
-                  onPress={() =>
-                    navigation.navigate('Choice Details', {
-                      choice: storedChoice,
-                    })
-                  }
-                />
-              </Section>
-            </View>
-          );
-        })
+        <View>
+          <View
+            style={{
+              flex: 1,
+              alignItems: 'flex-end',
+            }}>
+            <Button title="Clear data" onPress={() => setClearData(true)} />
+          </View>
+          <ChoicesList {...{navigation, storedChoices}} />
+        </View>
       )}
     </ScrollView>
   );
+};
+
+const ChoicesList = ({navigation, storedChoices}) => {
+  return storedChoices.map((storedChoice, index) => {
+    return (
+      <View key={index}>
+        <Section title={storedChoice.name} subTitle={storedChoice.timestamp}>
+          <SectionText>Info: {storedChoice.additionalInfo}</SectionText>
+          <Button
+            title="Details"
+            onPress={() =>
+              navigation.navigate('Choice Details', {
+                choice: storedChoice,
+              })
+            }
+          />
+        </Section>
+      </View>
+    );
+  });
 };
 
 const ChoiceDetailsScreen = ({route}) => {
