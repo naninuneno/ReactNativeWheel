@@ -19,14 +19,17 @@ import WebView from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Section, SectionText} from './common/section';
 import Choice from './choice';
+import Wheel from './wheel';
 import {NavigationContainer, useIsFocused} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {clear} from 'react-native/Libraries/LogBox/Data/LogBoxData';
 
 const Stack = createNativeStackNavigator();
 
-const setData = async choice => {
-  let savedChoices = await AsyncStorage.getItem('savedChoices')
+const SAVED_WHEELS_ITEM = 'savedWheels';
+const SAVED_CHOICES_ITEM = 'savedChoices';
+
+const saveNewChoice = async choice => {
+  let savedChoices = await AsyncStorage.getItem(SAVED_CHOICES_ITEM)
     .then(req => JSON.parse(req))
     .catch(error => console.error('Error setting saved choices', error));
   if (savedChoices === null) {
@@ -37,7 +40,33 @@ const setData = async choice => {
   const newChoice = new Choice(id, choice, currentTime, '');
   savedChoices.push(newChoice);
   console.log('saving?');
-  await AsyncStorage.setItem('savedChoices', JSON.stringify(savedChoices));
+  await AsyncStorage.setItem(SAVED_CHOICES_ITEM, JSON.stringify(savedChoices));
+};
+
+const getSavedWheels = async () => {
+  // await AsyncStorage.removeItem(SAVED_WHEELS_ITEM);
+  const savedData = await AsyncStorage.getItem(SAVED_WHEELS_ITEM)
+    .then(req => JSON.parse(req))
+    .catch(error => console.error('Error getting saved wheels', error));
+  if (savedData !== null) {
+    return savedData;
+  } else {
+    return [];
+  }
+};
+
+const saveNewWheel = async function (name, choices) {
+  let savedWheels = await AsyncStorage.getItem(SAVED_WHEELS_ITEM)
+    .then(req => JSON.parse(req))
+    .catch(error => console.error('Error setting saved wheels', error));
+  if (savedWheels === null) {
+    savedWheels = [];
+  }
+  const id = savedWheels.length;
+  const newWheel = new Wheel(id, name, choices);
+  console.log('new wheels: ', newWheel);
+  savedWheels.push(newWheel);
+  await AsyncStorage.setItem(SAVED_WHEELS_ITEM, JSON.stringify(savedWheels));
 };
 
 function notify(msg) {
@@ -55,6 +84,8 @@ const App = () => {
       <NavigationContainer>
         <Stack.Navigator>
           <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Choose Wheel" component={ChooseWheelScreen} />
+          <Stack.Screen name="Create Wheel" component={CreateWheelScreen} />
           <Stack.Screen name="Wheel Spin" component={WheelSpinScreen} />
           <Stack.Screen name="Wheel Choices" options={{title: 'History'}}>
             {props => <WheelChoicesScreen {...props} />}
@@ -72,7 +103,7 @@ const HomeScreen = ({navigation}) => {
       <Section>
         <Button
           title="Spin Wheel"
-          onPress={() => navigation.navigate('Wheel Spin')}
+          onPress={() => navigation.navigate('Choose Wheel')}
         />
       </Section>
       <Section>
@@ -85,7 +116,150 @@ const HomeScreen = ({navigation}) => {
   );
 };
 
-const WheelSpinScreen = ({navigation}) => {
+const ChooseWheelScreen = ({navigation}) => {
+  const savedWheels = useRef([]);
+  const [viewInitialised, setViewInitialised] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [clearData, setClearData] = useState(false);
+
+  useEffect(() => {
+    if (!viewInitialised) {
+      getSavedWheels().then(wheels => {
+        console.log('saved wheels: ', wheels);
+        savedWheels.current = wheels;
+        setViewInitialised(true);
+        setLoading(false);
+      });
+    }
+
+    const deleteWheels = async () => {
+      await AsyncStorage.removeItem(SAVED_WHEELS_ITEM);
+    };
+    if (clearData) {
+      deleteWheels().then(() => {
+        setLoading(true);
+        getSavedWheels().then(wheels => {
+          savedWheels.current = wheels;
+          setLoading(false);
+        });
+      });
+    }
+  }, [viewInitialised, setViewInitialised, clearData]);
+
+  return (
+    <ScrollView>
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'flex-end',
+        }}>
+        <Button
+          title="Create Wheel"
+          onPress={() => navigation.navigate('Create Wheel')}
+        />
+        <View style={{width: 1, height: 5}} />
+        <Button title="Clear data" onPress={() => setClearData(true)} />
+      </View>
+      {loading ? (
+        <ActivityIndicator style={{marginTop: 50}} />
+      ) : (
+        <View>
+          {savedWheels.current.map((savedWheel, index) => {
+            return (
+              <View key={index}>
+                <Section title={savedWheel.name}>
+                  <SectionText>Choices:</SectionText>
+                  {savedWheel.choices.map((choice, innerIndex) => {
+                    return (
+                      <SectionText key={innerIndex}>
+                        {'\u25AA'} {choice}
+                      </SectionText>
+                    );
+                  })}
+                  <Button
+                    title="Spin"
+                    onPress={() => {
+                      navigation.navigate('Wheel Spin', {
+                        choices: savedWheel.choices,
+                      });
+                    }}
+                  />
+                </Section>
+              </View>
+            );
+          })}
+        </View>
+      )}
+    </ScrollView>
+  );
+};
+
+const CreateWheelScreen = ({navigation}) => {
+  const savedWheelNames = useRef([]);
+  const [viewInitialised, setViewInitialised] = useState(false);
+  const wheelName = useRef('');
+  const wheelChoices = useRef('');
+  const [saveWheel, setSaveWheel] = useState(false);
+
+  useEffect(() => {
+    if (!viewInitialised) {
+      getSavedWheels().then(wheels => {
+        savedWheelNames.current = wheels.map(w => w.name);
+        console.log('saved wheels (create wheel): ', savedWheelNames.current);
+        setViewInitialised(true);
+      });
+    }
+
+    if (saveWheel) {
+      const choicesArray = wheelChoices.current.split(',').map(ch => ch.trim());
+      saveNewWheel(wheelName.current, choicesArray).then(() => {
+        navigation.popToTop();
+        navigation.navigate('Choose Wheel');
+      });
+    }
+  }, [viewInitialised, setViewInitialised, navigation, saveWheel]);
+
+  return (
+    <ScrollView>
+      <Section>
+        <Text>Wheel name:</Text>
+        <TextInput
+          style={{backgroundColor: 'white'}}
+          onChangeText={wheelNameInput => {
+            wheelName.current = wheelNameInput;
+          }}
+        />
+        <Text>Enter wheel choices separated by comma:</Text>
+        <TextInput
+          style={{backgroundColor: 'white'}}
+          onChangeText={wheelChoicesInput => {
+            wheelChoices.current = wheelChoicesInput;
+          }}
+        />
+        <Button
+          title="Save"
+          onPress={() => {
+            if (wheelName.current.length < 1) {
+              notify('Please provide a wheel name');
+            } else if (savedWheelNames.current.includes(wheelName.current)) {
+              notify('A wheel already exists with this name');
+            } else if (wheelChoices.current.length < 1) {
+              notify('Please provide wheel choices');
+            } else if (wheelChoices.current.indexOf(',') === -1) {
+              notify(
+                'Please provide more than one wheel choice separated by comma',
+              );
+            } else {
+              setSaveWheel(true);
+            }
+          }}
+        />
+      </Section>
+    </ScrollView>
+  );
+};
+
+const WheelSpinScreen = ({navigation, route}) => {
   const runFirst = `
       function getElementByXpath(path) {
         return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
@@ -107,6 +281,11 @@ const WheelSpinScreen = ({navigation}) => {
 
   const webViewRef = useRef();
 
+  const choices = route.params.choices;
+  const baseUrl = 'https://tools-unite.com/tools/random-picker-wheel?inputs=';
+  const params = choices.map(ch => '' + ch + ':1').join(',');
+  const spinUrl = baseUrl + params;
+
   const handleWebViewNavigationStateChange = newNavState => {
     const {url} = newNavState;
     console.log('New nav: ', url);
@@ -116,7 +295,7 @@ const WheelSpinScreen = ({navigation}) => {
 
   useEffect(() => {
     if (choice) {
-      setData(choice).then(() => {
+      saveNewChoice(choice).then(() => {
         // popToTop to navigate to home screen first then choices
         // so 'Back' navigation from choices will go back to home instead of wheel spin
         navigation.popToTop();
@@ -129,14 +308,13 @@ const WheelSpinScreen = ({navigation}) => {
   return (
     <WebView
       source={{
-        uri:
-          'https://tools-unite.com/tools/random-picker-wheel?inputs=Read:1,Watch:1,' +
-          'Read:1,Watch:1,Read:1,Watch:1,Read:1,Watch:1,SmallWheel:1',
+        uri: spinUrl,
       }}
       ref={webViewRef}
       onMessage={event => {
         let location;
         const message = event.nativeEvent.data;
+        // TODO replace with wheel associations
         if (message === 'SmallWheel') {
           location =
             'https://tools-unite.com/tools/random-picker-wheel?inputs=OpenSource:1,Productive:1,' +
@@ -172,7 +350,7 @@ const WheelChoicesScreen = ({navigation}) => {
 
   useEffect(() => {
     const getData = async () => {
-      const savedValues = await AsyncStorage.getItem('savedChoices')
+      const savedValues = await AsyncStorage.getItem(SAVED_CHOICES_ITEM)
         .then(req => JSON.parse(req))
         .catch(error => console.error('Error getting saved choices', error));
       if (savedValues !== null) {
@@ -183,7 +361,7 @@ const WheelChoicesScreen = ({navigation}) => {
     };
 
     const deleteChoices = async () => {
-      await AsyncStorage.removeItem('savedChoices');
+      await AsyncStorage.removeItem(SAVED_CHOICES_ITEM);
     };
 
     if (isFocused) {
@@ -256,14 +434,14 @@ const ChoiceDetailsScreen = ({route}) => {
     }
 
     const getSavedChoice = async () => {
-      await AsyncStorage.getItem('savedChoices')
+      await AsyncStorage.getItem(SAVED_CHOICES_ITEM)
         .then(req => JSON.parse(req))
         .then(savedChoices => savedChoices[choice.id])
         .catch(error => console.error('Error getting saved choice', error));
     };
 
     const updateChoice = async () => {
-      const savedChoices = await AsyncStorage.getItem('savedChoices')
+      const savedChoices = await AsyncStorage.getItem(SAVED_CHOICES_ITEM)
         .then(req => JSON.parse(req))
         .catch(error => console.error('Error getting saved choices', error));
 
@@ -272,7 +450,10 @@ const ChoiceDetailsScreen = ({route}) => {
       savedChoices[choice.id] = choice;
       console.log('After: ', choice);
 
-      await AsyncStorage.setItem('savedChoices', JSON.stringify(savedChoices));
+      await AsyncStorage.setItem(
+        SAVED_CHOICES_ITEM,
+        JSON.stringify(savedChoices),
+      );
     };
 
     getSavedChoice().then(() =>
