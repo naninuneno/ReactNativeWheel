@@ -1,4 +1,4 @@
-### React Native Wheel Spinner
+## React Native Wheel Spinner
 
 Little project to learn some react native - wheel spinner using WebView to leverage existing wheel spin site to spin, then saving and allowing editing of those
 
@@ -6,7 +6,17 @@ Targets Android and iOS
 
 ---
 
-_Setup Notes:_
+### Notes
+
+* `package.json` - `jest` config:
+
+    `transformIgnorePatterns`
+
+    This was a trip - https://stackoverflow.com/a/59964555
+
+---
+
+### Setup
 
 * Need to run `npm install`, `pod install` in `ios/`... and probably some others too that I didn't keep track of :(
 
@@ -19,3 +29,7 @@ _Setup Notes:_
 
 
 * although think it's only needed when something new needs built - worked fine without this until added react webview stuff in
+
+### Testing
+
+`npm test` - just jest unit tests for now because E2E tests are a headache to set up
