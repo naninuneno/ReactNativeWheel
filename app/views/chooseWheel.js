@@ -3,6 +3,10 @@ import * as asyncStore from '../storage/asyncStore';
 import {ActivityIndicator, Button, ScrollView, View} from 'react-native';
 import * as screenNames from '../constants/screenNames';
 import {Section, SectionText} from '../common/section';
+import {
+  CHOOSE_WHEEL_LOADING_INDICATOR,
+  CHOOSE_WHEEL_SAVED_WHEELS,
+} from './_testIds';
 
 export const ChooseWheelScreen = ({navigation}) => {
   const savedWheels = useRef([]);
@@ -13,7 +17,6 @@ export const ChooseWheelScreen = ({navigation}) => {
   useEffect(() => {
     if (!viewInitialised) {
       asyncStore.getSavedWheels().then(wheels => {
-        console.log('saved wheels: ', wheels);
         savedWheels.current = wheels;
         setViewInitialised(true);
         setLoading(false);
@@ -46,12 +49,15 @@ export const ChooseWheelScreen = ({navigation}) => {
         <Button title="Clear data" onPress={() => setClearData(true)} />
       </View>
       {loading ? (
-        <ActivityIndicator style={{marginTop: 50}} />
+        <ActivityIndicator
+          style={{marginTop: 50}}
+          testID={CHOOSE_WHEEL_LOADING_INDICATOR}
+        />
       ) : (
-        <View>
+        <View testID={CHOOSE_WHEEL_SAVED_WHEELS}>
           {savedWheels.current.map((savedWheel, index) => {
             return (
-              <View key={index}>
+              <View key={index} testID={savedWheel.name}>
                 <Section title={savedWheel.name}>
                   <SectionText>Choices:</SectionText>
                   {savedWheel.choices.map((choice, innerIndex) => {
