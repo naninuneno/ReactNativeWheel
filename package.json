@@ -34,6 +34,7 @@
     "preset": "react-native",
     "transformIgnorePatterns": [
       "node_modules/(?!(jest-)?react-native|@react-native|@react-navigation|react-native-webview)"
-    ]
+    ],
+    "clearMocks": true
   }
 }

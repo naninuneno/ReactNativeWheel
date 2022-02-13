@@ -4,6 +4,10 @@ import * as screenNames from '../constants/screenNames';
 import {Button, ScrollView, Text, TextInput} from 'react-native';
 import {Section} from '../common/section';
 import notify from '../common/notify';
+import {
+  CREATE_WHEEL_CHOICES_INPUT,
+  CREATE_WHEEL_WHEEL_NAME_INPUT,
+} from './_testIds';
 
 export const CreateWheelScreen = ({navigation}) => {
   const savedWheelNames = useRef([]);
@@ -35,6 +39,7 @@ export const CreateWheelScreen = ({navigation}) => {
       <Section>
         <Text>Wheel name:</Text>
         <TextInput
+          testID={CREATE_WHEEL_WHEEL_NAME_INPUT}
           style={{backgroundColor: 'white'}}
           onChangeText={wheelNameInput => {
             wheelName.current = wheelNameInput;
@@ -42,6 +47,7 @@ export const CreateWheelScreen = ({navigation}) => {
         />
         <Text>Enter wheel choices separated by comma:</Text>
         <TextInput
+          testID={CREATE_WHEEL_CHOICES_INPUT}
           style={{backgroundColor: 'white'}}
           onChangeText={wheelChoicesInput => {
             wheelChoices.current = wheelChoicesInput;

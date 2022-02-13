@@ -70,7 +70,7 @@ export async function saveNewWheel(name, choices) {
   }
   const id = savedWheels.length;
   const newWheel = new Wheel(id, name, choices);
-  console.log('new wheels: ', newWheel);
+  console.log('new wheel: ', newWheel);
   savedWheels.push(newWheel);
   await AsyncStorage.setItem(SAVED_WHEELS_ITEM, JSON.stringify(savedWheels));
 }

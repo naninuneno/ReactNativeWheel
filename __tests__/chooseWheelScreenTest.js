@@ -1,6 +1,6 @@
 import 'react-native';
 import React from 'react';
-import {render, waitFor} from '@testing-library/react-native';
+import {fireEvent, render, waitFor} from '@testing-library/react-native';
 import {ChooseWheelScreen} from '../app/views/chooseWheel';
 import AsyncStorageMock from '@react-native-async-storage/async-storage/jest/async-storage-mock';
 import Wheel from '../app/wheel';
@@ -9,9 +9,12 @@ import {
   CHOOSE_WHEEL_LOADING_INDICATOR,
   CHOOSE_WHEEL_SAVED_WHEELS,
 } from '../app/views/_testIds';
+import {Button} from 'react-native';
 
 // not sure if this is needed - can't tell if this mock is reset between different test files,
 // but it's not reset between different tests in the same test file
+
+// TODO: jest.restoreAllMocks() ??? - apparently restores mocks to original methods
 let default_getItem;
 beforeEach(() => {
   default_getItem = AsyncStorageMock.getItem;
@@ -57,6 +60,8 @@ test('choose wheel page has saved wheels', async () => {
     expect(getSectionText(wheel1SectionTexts[0])).toBe('Choices:');
     expect(getSectionText(wheel1SectionTexts[1])).toBe('▪ Choice A');
     expect(getSectionText(wheel1SectionTexts[2])).toBe('▪ Choice B');
+    expect(wheel1Section.findByType(Button).props.title).toBe('Spin');
+    wheel1Section.findByType(Button);
 
     const wheel2SectionTexts = wheel2Section.findAllByType(SectionText);
     expect(wheel2SectionTexts.length).toBe(4);
@@ -64,6 +69,7 @@ test('choose wheel page has saved wheels', async () => {
     expect(getSectionText(wheel2SectionTexts[1])).toBe('▪ Choice X');
     expect(getSectionText(wheel2SectionTexts[2])).toBe('▪ Choice Y');
     expect(getSectionText(wheel2SectionTexts[3])).toBe('▪ Choice Z');
+    expect(wheel2Section.findByType(Button).props.title).toBe('Spin');
 
     const loadingIndicator = queryByTestId(CHOOSE_WHEEL_LOADING_INDICATOR);
     expect(loadingIndicator).toBeNull();
@@ -95,5 +101,15 @@ test('choose wheel page has spinner until wheels loaded', async () => {
     getByTestId(CHOOSE_WHEEL_LOADING_INDICATOR);
     const wheelsView = queryByTestId(CHOOSE_WHEEL_SAVED_WHEELS);
     expect(wheelsView).toBeNull();
+  });
+});
+
+test('delete wheels', async () => {
+  const {getByText} = render(<ChooseWheelScreen />);
+
+  fireEvent.press(getByText('Clear data'));
+
+  await waitFor(() => {
+    expect(AsyncStorageMock.removeItem.mock.calls.length).toBe(1);
   });
 });
