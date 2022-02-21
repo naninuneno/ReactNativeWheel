@@ -14,6 +14,7 @@ import {ChoiceDetailsScreen} from './views/choiceDetails';
 import * as screenNames from './constants/screenNames';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import {EditWheelScreen} from './views/editWheel';
 
 const Stack = createNativeStackNavigator();
 
@@ -30,6 +31,10 @@ const App = () => {
           <Stack.Screen
             name={screenNames.CREATE_WHEEL}
             component={CreateWheelScreen}
+          />
+          <Stack.Screen
+            name={screenNames.EDIT_WHEEL}
+            component={EditWheelScreen}
           />
           <Stack.Screen
             name={screenNames.SPIN_WHEEL}

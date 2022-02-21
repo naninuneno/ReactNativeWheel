@@ -62,12 +62,12 @@ export const SpinWheelScreen = ({navigation, route}) => {
         // TODO replace with wheel associations
         if (message === 'SmallWheel') {
           location =
-            'https://tools-unite.com/tools/random-picker-wheel?inputs=OpenSource:1,Productive:1,' +
-            'Free:1';
+            'https://tools-unite.com/tools/random-picker-wheel?inputs=Choice1:1,Choice2:1,' +
+            'Choice3:1';
         } else if (message === 'Read' || message === 'Watch') {
           location =
-            'https://tools-unite.com/tools/random-picker-wheel?inputs=Language:1,Misc:1,' +
-            'Programming:1,Piano:1,Politics:1';
+            'https://tools-unite.com/tools/random-picker-wheel?inputs=ReadWatch1:1,ReadWatch2:1,' +
+            'ReadWatch3:1,ReadWatch4:1,ReadWatch5:1';
         } else {
           setChoice(message);
         }

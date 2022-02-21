@@ -3,6 +3,7 @@ import * as asyncStore from '../storage/asyncStore';
 import {ActivityIndicator, Button, ScrollView, View} from 'react-native';
 import * as screenNames from '../constants/screenNames';
 import {Section, SectionText} from '../common/section';
+import {styles} from '../common/styles';
 import {
   CHOOSE_WHEEL_LOADING_INDICATOR,
   CHOOSE_WHEEL_SAVED_WHEELS,
@@ -36,11 +37,7 @@ export const ChooseWheelScreen = ({navigation}) => {
 
   return (
     <ScrollView>
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'flex-end',
-        }}>
+      <View style={styles.alignEnd}>
         <Button
           title="Create Wheel"
           onPress={() => navigation.navigate(screenNames.CREATE_WHEEL)}
@@ -59,6 +56,16 @@ export const ChooseWheelScreen = ({navigation}) => {
             return (
               <View key={index} testID={savedWheel.name}>
                 <Section title={savedWheel.name}>
+                  <View style={styles.alignEnd}>
+                    <Button
+                      title="View"
+                      onPress={() => {
+                        navigation.navigate(screenNames.EDIT_WHEEL, {
+                          wheel: savedWheel,
+                        });
+                      }}
+                    />
+                  </View>
                   <SectionText>Choices:</SectionText>
                   {savedWheel.choices.map((choice, innerIndex) => {
                     return (
@@ -67,14 +74,22 @@ export const ChooseWheelScreen = ({navigation}) => {
                       </SectionText>
                     );
                   })}
-                  <Button
-                    title="Spin"
-                    onPress={() => {
-                      navigation.navigate(screenNames.SPIN_WHEEL, {
-                        choices: savedWheel.choices,
-                      });
-                    }}
-                  />
+                  <View
+                    style={{
+                      flex: 1,
+                      justifyContent: 'center',
+                      marginLeft: 100,
+                      marginRight: 100,
+                    }}>
+                    <Button
+                      title="Spin"
+                      onPress={() => {
+                        navigation.navigate(screenNames.SPIN_WHEEL, {
+                          choices: savedWheel.choices,
+                        });
+                      }}
+                    />
+                  </View>
                 </Section>
               </View>
             );
