@@ -4,6 +4,12 @@ Little project to learn some react native - wheel spinner using WebView to lever
 
 Targets Android and iOS
 
+![Wheels](screens/wheels.png)
+
+![Spin](screens/spin.png)
+
+![Choices](screens/choices.png)
+
 ---
 
 ### Notes
